@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup 2FA - Secure QR Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .step {
+            margin-bottom: 30px;
+        }
+        
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        
+        .step-title {
+            display: inline;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .step-content {
+            margin-top: 15px;
+            padding-left: 40px;
+        }
+        
+        .qr-box {
+            background: #f5f5f5;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        
+        .qr-box img {
+            max-width: 250px;
+            width: 100%;
+            height: auto;
+        }
+        
+        .qr-box p {
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .secret-box {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            word-break: break-all;
+            color: #333;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 15px;
+            border-radius: 5px;
+            color: #1565c0;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+        
+        .instructions li {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .form-group {
+            margin: 20px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Enable Two-Factor Authentication</h1>
+        <p class="subtitle">Add an extra layer of security to your account</p>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <div class="step">
+            <span class="step-number">1</span>
+            <span class="step-title">Scan QR Code</span>
+            <div class="step-content">
+                <p>Use an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to scan this QR code:</p>
+                <div class="qr-box">
+                    <img src="data:image/png;base64,{{ qr_image }}" alt="2FA QR Code">
+                    <p>Can't scan? Enter the code manually below</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2</span>
+            <span class="step-title">Manual Entry</span>
+            <div class="step-content">
+                <p>If you can't scan the QR code, enter this key manually:</p>
+                <div class="secret-box">{{ secret }}</div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3</span>
+            <span class="step-title">Verify Code</span>
+            <div class="step-content">
+                <p>Enter the 6-digit code from your authenticator app:</p>
+                <form method="POST" action="{{ url_for('confirm_2fa') }}">
+                    <div class="form-group">
+                        <label>6-Digit Code</label>
+                        <input type="text" name="code" placeholder="000000" maxlength="6" pattern="\d{6}" required autocomplete="off">
+                    </div>
+                    <button type="submit">Verify & Enable 2FA</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <strong>📲 Recommended Authenticator Apps:</strong>
+            <ul>
+                <li>Google Authenticator</li>
+                <li>Microsoft Authenticator</li>
+                <li>Authy</li>
+                <li>LastPass Authenticator</li>
+            </ul>
+        </div>
+        
+        <div class="back-link">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

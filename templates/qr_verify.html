@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Verification - Secure QR Authentication</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .instructions p {
+            color: #558b2f;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: white;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-btn:hover {
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .scanner-section {
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .scanner-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        #video,
+        #uploadPreview {
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            margin: 15px auto;
+            display: block;
+        }
+        
+        canvas {
+            display: none;
+        }
+        
+        button,
+        label.upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        button:hover,
+        label.upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        label.upload-btn {
+            margin: 10px auto;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+            text-align: center;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            display: block;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            color: #c62828;
+            display: block;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            color: #1565c0;
+            display: block;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hint {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 12px;
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px 20px;
+            background: #f0f4ff;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 20px 0;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #764ba2;
+            background: #e8e5f5;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+        
+        .drop-zone-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .drop-zone-text {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .drop-zone-subtext {
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 QR Code Verification</h1>
+        <p class="subtitle">A QR code has been sent to your email - scan it to complete login</p>
+        
+        <div class="instructions">
+            <p>📧 Check your email for a message from <strong>noreply@qrauth.com</strong></p>
+            <p>💡 Then use one of the options below to verify your login</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('camera')">📷 Scan QR</button>
+            <button class="tab-btn" onclick="switchTab('upload')">📤 Upload Image</button>
+        </div>
+        
+        <!-- Camera Scanner Tab -->
+        <div id="camera" class="tab-content active">
+            <div class="scanner-section">
+                <div class="scanner-title">📷 Use Camera to Scan</div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Point your camera at the QR code in your email</p>
+                
+                <video id="video" width="300" height="300" autoplay></video>
+                <canvas id="canvas" width="300" height="300"></canvas>
+                
+                <button onclick="startScanning()" id="startBtn">🔍 Start Scanner</button>
+                <button onclick="stopScanning()" style="display: none;" id="stopBtn">⏹ Stop Scanner</button>
+                
+                <div id="status" class="status"></div>
+                
+                <div class="hint">
+                    💡 <strong>Tip:</strong> Good lighting helps. Hold the QR code steady within the frame.
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Upload Tab -->
+        <div id="upload" class="tab-content">
+            <div class="scanner-section">
+                <div class="scanner-title">📤 Upload QR Image</div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Select a QR code image from your device</p>
+                
+                <!-- Drag and Drop Zone -->
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-icon">📥</div>
+                    <div class="drop-zone-text">Drag & Drop your image here</div>
+                    <div class="drop-zone-subtext">or click to browse</div>
+                </div>
+                
+                <input type="file" id="fileInput" accept="image/*">
+                <label for="fileInput" class="upload-btn" style="margin-top: 10px;">📁 Choose Image</label>
+                
+                <img id="uploadPreview" style="display: none; margin-top: 15px;">
+                
+                <button onclick="scanUploadedImage()" id="scanBtn" style="display: none; margin-top: 15px;">✓ Scan Image</button>
+                
+                <div id="uploadStatus" class="status"></div>
+                
+                <div class="hint">
+                    💡 <strong>Tip:</strong> Use a clear image of the QR code from your email for best results. You can drag & drop or click to select.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scanning = false;
+        let requestId = null;
+        const sessionId = "{{ session_id }}";
+        const deviceId = "{{ device_id }}";
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Stop scanner if switching away from camera tab
+            if (tabName !== 'camera' && scanning) {
+                stopScanning();
+            }
+        }
+        
+        function showStatus(msg, type, statusId = 'status') {
+            const status = document.getElementById(statusId);
+            status.textContent = msg;
+            status.className = `status ${type}`;
+        }
+        
+        function startScanning() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    document.getElementById('stopBtn').style.display = 'inline-block';
+                    document.getElementById('startBtn').style.display = 'none';
+                    scanning = true;
+                    
+                    const scan = () => {
+                        if (scanning) {
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                            const code = jsQR(imageData.data, imageData.width, imageData.height);
+                            
+                            if (code) {
+                                console.log('QR detected:', code.data);
+                                verifyQR();
+                            }
+                            requestId = requestAnimationFrame(scan);
+                        }
+                    };
+                    scan();
+                })
+                .catch(err => {
+                    showStatus('❌ Camera access denied. Please allow camera permissions.', 'error');
+                    console.error(err);
+                });
+        }
+        
+        function stopScanning() {
+            scanning = false;
+            const video = document.getElementById('video');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+            }
+            if (requestId) {
+                cancelAnimationFrame(requestId);
+            }
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'inline-block';
+        }
+        
+        // File upload handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        // Drag and drop events
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                // Trigger the change event to process the file
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        });
+        
+        // Prevent default drag and drop on the entire document
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+        });
+        
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('uploadPreview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('scanBtn').style.display = 'inline-block';
+                    showStatus('✅ Image loaded. Click "Scan Image" to verify.', 'info', 'uploadStatus');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        function scanUploadedImage() {
+            const preview = document.getElementById('uploadPreview');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    console.log('QR detected in uploaded image:', code.data);
+                    verifyQR();
+                } else {
+                    showStatus('❌ No QR code found in image. Please try another image.', 'error', 'uploadStatus');
+                }
+            };
+            img.src = preview.src;
+        }
+        
+        function verifyQR() {
+            showStatus('📱 QR verified! Verifying...', 'info');
+            
+            fetch('/api/scan_qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    device_id: deviceId,
+                    device_name: navigator.userAgent
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('✅ QR verified! Logging in...', 'success');
+                    setTimeout(() => {
+                        window.location.href = `/complete_login/${sessionId}`;
+                    }, 2000);
+                } else {
+                    showStatus('❌ ' + data.message, 'error');
+                }
+            })
+            .catch(err => {
+                showStatus('❌ Error: ' + err, 'error');
+            });
+        }
+        
+        function checkAuthStatus() {
+            fetch(`/api/check_auth_status/${sessionId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        showStatus('✅ Authentication successful!', 'success');
+                        setTimeout(() => {
+                            window.location.href = `/complete_login/${sessionId}`;
+                        }, 2000);
+                    }
+                })
+                .catch(err => console.log('Checking...'));
+        }
+        
+        // Poll every 2 seconds
+        setInterval(checkAuthStatus, 2000);
+    </script>
+</body>
+</html>

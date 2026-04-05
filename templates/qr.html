@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Verification - Secure QR Authentication</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            text-align: center;
+        }
+        
+        .qr-display {
+            background: linear-gradient(to bottom, #f5f5f5, #fff);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px dashed #667eea;
+        }
+        
+        .qr-display img {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+        }
+        
+        .instructions {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .instructions h3 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        
+        .instructions p {
+            color: #558b2f;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .scanner-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .scanner-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        #video {
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        canvas {
+            display: none;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            display: block;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            color: #c62828;
+            display: block;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            color: #1565c0;
+            display: block;
+        }
+        
+        .countdown {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 QR Code Verification</h1>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>✅ Step 1: Your Login QR Code</h3>
+                <p>Scan this QR code using a trusted device to complete login</p>
+            </div>
+            
+            <div class="qr-display">
+                <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code">
+                <p style="font-size: 12px; color: #999; margin-top: 10px;">Session expires in 5 minutes</p>
+            </div>
+            
+            <div class="scanner-section">
+                <div class="scanner-title">📱 Step 2: Scan & Verify</div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Use a trusted device to scan the QR code above</p>
+                
+                <video id="video" width="300" height="300" autoplay></video>
+                <canvas id="canvas" width="300" height="300"></canvas>
+                
+                <button onclick="startScanning()">🔍 Start Scanner</button>
+                <button onclick="stopScanning()" style="display: none;" id="stopBtn">⏹ Stop Scanner</button>
+                
+                <div id="status" class="status"></div>
+                <div class="countdown">Checking status every 2 seconds...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scanning = false;
+        let requestId = null;
+        const sessionId = "{{ session_id }}";
+        const deviceId = "{{ device_id }}";
+        
+        function startScanning() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    document.getElementById('stopBtn').style.display = 'inline-block';
+                    document.querySelector('button[onclick="startScanning()"]').style.display = 'none';
+                    scanning = true;
+                    
+                    const scan = () => {
+                        if (scanning) {
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                            const code = jsQR(imageData.data, imageData.width, imageData.height);
+                            
+                            if (code) {
+                                console.log('QR detected:', code.data);
+                                verifyQR();
+                            }
+                            requestId = requestAnimationFrame(scan);
+                        }
+                    };
+                    scan();
+                })
+                .catch(err => {
+                    showStatus('Camera access denied. Please allow camera permissions.', 'error');
+                    console.error(err);
+                });
+        }
+        
+        function stopScanning() {
+            scanning = false;
+            const video = document.getElementById('video');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+            }
+            if (requestId) {
+                cancelAnimationFrame(requestId);
+            }
+            document.getElementById('stopBtn').style.display = 'none';
+            document.querySelector('button[onclick="startScanning()"]').style.display = 'inline-block';
+        }
+        
+        function verifyQR() {
+            stopScanning();
+            showStatus('📱 QR scanned! Verifying...', 'info');
+            
+            fetch('/api/scan_qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    device_id: deviceId,
+                    device_name: navigator.userAgent
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('✅ QR verified! Logging in...', 'success');
+                    setTimeout(() => {
+                        window.location.href = `/complete_login/${sessionId}`;
+                    }, 2000);
+                } else {
+                    showStatus('❌ ' + data.message, 'error');
+                }
+            });
+        }
+        
+        function checkAuthStatus() {
+            fetch(`/api/check_auth_status/${sessionId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        showStatus('✅ Authentication successful!', 'success');
+                        setTimeout(() => {
+                            window.location.href = `/complete_login/${sessionId}`;
+                        }, 2000);
+                    } else if (data.requires_2fa) {
+                        showStatus('🔐 Enter 2FA code', 'info');
+                    }
+                })
+                .catch(err => console.log('Checking...'));
+        }
+        
+        function showStatus(msg, type) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = `status ${type}`;
+        }
+        
+        // Poll every 2 seconds
+        setInterval(checkAuthStatus, 2000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/venv
+.env
+.env.example
+email_errors.log
+/instance

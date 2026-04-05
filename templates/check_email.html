@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Email - Secure QR Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .icon {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .email-info {
+            background: #e3f2fd;
+            border: 2px solid #1976d2;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .email-info p {
+            color: #1565c0;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .email-info small {
+            color: #1976d2;
+            display: block;
+            margin-top: 8px;
+        }
+        
+        .steps {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .step-item {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+        
+        .step-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+        
+        .step-text {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .button-group {
+            display: grid;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        
+        button, a.button {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        button:hover, a.button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #667eea;
+            border: 2px solid #667eea;
+            width: 100%;
+        }
+        
+        .countdown {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+        
+        .countdown strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d32f2f;
+            text-align: center;
+        }
+        
+        .spam-notice {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 5px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spam-notice strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📧</div>
+        
+        <h1>Check Your Email</h1>
+        <p class="subtitle">Login QR code has been sent to your inbox</p>
+        
+        <div class="email-info">
+            <p>📬 Check your Gmail inbox</p>
+            <small>Look for email from: noreply@qrauth.com</small>
+        </div>
+        
+        <div class="steps">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-text">Open the email titled "<strong>Your Secure Login QR Code</strong>"</div>
+            </div>
+            
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-text">View the QR code in the email</div>
+            </div>
+            
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-text">On a trusted device, scan the QR to login</div>
+            </div>
+            
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-text">You'll be logged in automatically ✅</div>
+            </div>
+        </div>
+        
+        <div class="countdown">
+            <strong>⏰ Session Expires In:</strong>
+            <div class="timer" id="timer">5:00</div>
+        </div>
+        
+        <div class="button-group">
+            <a href="{{ url_for('qr_verify', session_id=session_id) }}" class="button btn-primary">
+                📱 View QR Code Here
+            </a>
+            <button class="btn-secondary" onclick="resendEmail()">🔄 Resend Email</button>
+        </div>
+        
+        <div class="spam-notice">
+            <strong>⚠️ Didn't receive the email?</strong>
+            <p>Check your spam/promotions folder. If still not there, click "Resend Email" above.</p>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = "{{ session_id }}";
+        let timeLeft = 300; // 5 minutes
+        
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                alert('Session expired! Please login again.');
+                window.location.href = '/login';
+                return;
+            }
+            
+            timeLeft--;
+            setTimeout(updateTimer, 1000);
+        }
+        
+        function resendEmail() {
+            fetch('/api/resend_qr_email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Email resent! Check your inbox.');
+                } else {
+                    alert('❌ Failed to resend. Try again later.');
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+        
+        updateTimer();
+    </script>
+</body>
+</html>
